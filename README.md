@@ -132,7 +132,66 @@ npm run dev
 | DELETE | `/api/admin/anime/{id}` | 删除，级联清剧集/标签/轮播/用户数据，并清理上传的图 |
 | PUT | `/api/admin/anime/{id}/visibility` | 上下架，body `{visible}` |
 
-剧集、标签、轮播、用户管理的接口待做。
+列表分页，查询参数 `q` / `visible` / `sort` / `order` / `page` / `size`。
+
+#### 剧集
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/admin/anime/{animeId}/episodes` | 新增，body `{episodeNo, title, airDate, watchUrl}` |
+| PUT | `/api/admin/episodes/{id}` | 修改，字段同上 |
+| DELETE | `/api/admin/episodes/{id}` | 删除 |
+
+读取复用公开的 `GET /api/anime/{id}/episodes`。剧集没有上下架的概念，管理员和普通
+用户看到的是同一份数据，没必要做两个接口。
+
+写操作的路径一个挂在番剧下、一个平铺在 `episodes` 下：新建时要指定是哪部番，
+改删时剧集 id 本身就够了。
+
+#### 标签
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/admin/tags` | 列表，带每个标签被几部番用着 |
+| POST | `/api/admin/tags` | 新建，body `{name}` |
+| PUT | `/api/admin/tags/{id}` | 重命名，字段同上 |
+| DELETE | `/api/admin/tags/{id}` | 删除，只解除关联，不删番剧 |
+
+计数**含已下架的番剧**，和公开的 `/api/tags` 不一样——管理员要的是「有多少部番挂着
+这个标签」，下架的也算，删之前才知道会影响什么。
+
+#### 轮播
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/admin/banners` | 列表，**含未启用的** |
+| POST | `/api/admin/banners` | 新建，body `{animeId, imageUrl, active, sortOrder}` |
+| PUT | `/api/admin/banners/{id}` | 修改，只传要改的字段，没传的沿用原值 |
+| DELETE | `/api/admin/banners/{id}` | 删除，番剧和图片都不动 |
+
+列表含未启用的，否则管理员没法把停用的再打开。
+
+轮播的启停字段叫 `active`，番剧的叫 `visible`，两者不统一，前端依赖各自的写法。
+
+#### 用户
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/admin/users` | 分页列表，查询参数 `q` / `page` / `size` |
+| PUT | `/api/admin/users/{id}/role` | 改角色，body `{role}` |
+| PUT | `/api/admin/users/{id}/enabled` | 禁用或启用，body `{enabled}` |
+
+**没有删除接口**，用户只禁用不删除，数据都留着。
+
+「不能改自己」的检查在 Service 层，操作人 id 取自 JWT 而不是请求体，改不了。
+
+#### 图片上传
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/admin/upload` | multipart 字段名 `file`，落 `backend/uploads/` |
+
+给用户自己换头像走 `POST /api/auth/avatar`，同样是 multipart 字段名 `file`。
 
 ### 预置账号
 
@@ -142,7 +201,23 @@ npm run dev
 
 ### 公开接口
 
-### `GET /api/anime`
+以下都不需要登录。
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/anime` | 上架的番剧，按首播日期倒序 |
+| GET | `/api/search` | 搜索 |
+| GET | `/api/anime/{id}` | 番剧详情 |
+| GET | `/api/anime/{id}/episodes` | 剧集列表 |
+| GET | `/api/anime/{id}/comments` | 评论列表 |
+| GET | `/api/banner` | 启用的轮播 |
+| GET | `/api/tags` | 标签列表，带计数 |
+| GET | `/api/users/{id}` | 用户公开资料 |
+| GET | `/api/users/{id}/comments` | 某用户的评论 |
+
+发评论和删评论要登录，见下面的「评论」。
+
+#### `GET /api/anime`
 
 **上架**的番剧，按首播日期倒序。下架的走 `/api/admin/anime`。
 
@@ -161,7 +236,23 @@ npm run dev
 `cover` 映射自列 `cover_image`，`latest` 映射自列 `status`，这两个别名是前端依赖的契约。
 `release_date` 保持下划线命名。
 
-### `GET /api/banner`
+#### `GET /api/search`
+
+两个参数都可以不传。`q` 是名称关键词，`tags` 是标签 id 列表，**多个标签是同时满足**
+的关系。
+
+标签用 `?tags=1&tags=2` 或 `?tags=1,2` 都行，Spring 两种都能绑到 `List`。
+只搜得到上架的番剧。
+
+`q` 里的 LIKE 通配符会被转义，用户搜一个 `%` 不会等于搜全部，见
+`util/LikeEscaper.java`。
+
+#### `GET /api/anime/{id}`
+
+番剧详情。**下架的也能取到**，因为用户可能从自己的追番或观看记录点进来，
+是不是上架看返回体里的 `visible`。
+
+#### `GET /api/banner`
 
 启用的轮播，按 `sort_order` 升序，JOIN 番剧表取标题与封面。
 
@@ -180,6 +271,21 @@ npm run dev
 `status` 为空时回落到 `已完结`，`desc` 为空时回落到 `暂无简介` —— 兜底在 Service 层做。
 
 注意这个接口是驼峰命名，上面那个是下划线命名。这个不一致前端依赖它，不做统一。
+
+### 评论
+
+| 方法 | 路径 | 认证 | 说明 |
+| --- | --- | --- | --- |
+| POST | `/api/comments` | 是 | 发评论，body `{animeId, content}` |
+| DELETE | `/api/comments/{id}` | 是 | 删评论 |
+
+**读和写拆成了两个 Controller**，因为认证要求不同：读是公开的，挂在
+`/api/anime/{id}/comments` 下；写要登录，统一在 `/api/comments` 下。不把写也放在
+同一条路径上，是因为拦截器只能按路径前缀配，区分不了同一路径上的 GET 和 POST。
+
+发评论返回完整的评论对象，前端拿到直接插到列表最前面，不用重拉整页。
+
+删评论时自己的可以删、管理员能删任何人的，`role` 由拦截器放进 attribute。
 
 ## 图片
 
