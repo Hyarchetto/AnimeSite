@@ -1,0 +1,35 @@
+# 放在项目根，覆盖整个仓库
+
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+target/
+
+# 验证时的临时产物，browser.mjs 的 Edge profile 落在这
+.tmp/
+
+# 后台上传的图片。运行时数据不是源码，而且在 .env 之外
+uploads/
+
+# 凭据 —— 最重要的一条
+# 明文数据库密码一旦被 git 收进去推到 GitHub 就等同于公开了
+# 即使之后删掉文件，历史记录里仍然查得到
+.env
+*.env
+application-local.yml
+application-local.properties
+
+# 本地技术笔记，不公开
+doc/
+
+# Claude Code 的本地权限记录
+# 里面是本地绝对路径和调试用的测试账号，不进仓库
+.claude/
+
+# 编辑器与系统
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

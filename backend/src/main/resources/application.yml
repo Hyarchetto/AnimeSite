@@ -1,0 +1,47 @@
+server:
+  # 前端 Home.vue 与 Banner.vue 两处 fetch 把地址硬编码成了 localhost:3001
+  # 改这个端口必须同步改前端，否则页面拿不到数据
+  port: 3001
+
+spring:
+  application:
+    name: anime-server
+
+  servlet:
+    multipart:
+      # 单张图上限。头像和封面都够用
+      max-file-size: 5MB
+      # 一次请求的总上限，比单文件大一点，给表单里的其它字段留余量
+      max-request-size: 6MB
+
+  datasource:
+    # 3307 是本机 MySQL 9.5 实例的端口，3306 被另一个项目的实例占着
+    url: jdbc:mysql://localhost:3307/anime_db?serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    # 凭据不放这里。本地跑的时候用环境变量 DB_USERNAME / DB_PASSWORD，
+    # 或者建一个不入库的 application-local.yml 覆盖
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+
+app:
+  upload:
+    # 后台上传的图片落盘位置，相对后端的启动目录也就是 backend/
+    # 这个目录是运行时数据不是源码，已经在 .gitignore 里
+    dir: uploads
+
+jwt:
+  # HS256 要求密钥至少 32 字节，短了 jjwt 直接抛 WeakKeyException
+  # 这里的默认值只是让本地能跑，不是密钥。上线必须用环境变量覆盖
+  secret: ${JWT_SECRET:dev-only-placeholder-secret-not-for-production-use}
+  # 有效期。JWT 签出去就收不回来，这个天数就是权限变更的最长延迟
+  expire-days: 7
+
+mybatis:
+  configuration:
+    # 数据库列是下划线命名，Java 字段是驼峰，交给 MyBatis 自动对应
+    # 这样 banner 的 image_src 能落到 imageSrc，而 anime 的 cover 别名不受影响
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    # 打开后每条 SQL 与参数都会打出来，初学 MyBatis 时很有用，上线应关掉
+    com.liuyuxiang.animeserver.mapper: debug

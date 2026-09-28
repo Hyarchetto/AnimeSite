@@ -1,0 +1,24 @@
+<svg width="560" height="140" viewBox="0 0 560 140" xmlns="http://www.w3.org/2000/svg">
+  <!-- 芝士图标 -->
+  <path d="M40,50 
+           C50,30 70,20 90,30 
+           C110,40 120,60 110,80 
+           C100,100 80,110 60,100 
+           C40,90 30,70 40,50 Z"
+        fill="#FFD700" stroke="#FFA500" stroke-width="5"/> <!-- 加粗到 5 -->
+  <circle cx="60" cy="70" r="8" fill="#FFA500"/>
+  <circle cx="80" cy="60" r="6" fill="#FFA500"/>
+  <circle cx="70" cy="85" r="5" fill="#FFA500"/>
+  <circle cx="55" cy="55" r="4" fill="#FFA500"/>
+
+  <!-- 文字 "芝士番" -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8C00"/>
+      <stop offset="100%" stop-color="#FF6347"/>
+    </linearGradient>
+  </defs>
+  <text x="140" y="100" font-family="cursive" font-size="88" fill="url(#grad)" stroke="#000" stroke-width="1" stroke-miterlimit="10"> <!-- 改为黑色描边 -->
+    芝士番
+  </text>
+</svg>
